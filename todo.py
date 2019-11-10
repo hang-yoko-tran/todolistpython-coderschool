@@ -1,4 +1,5 @@
-import os, re
+import os
+import re
 import sqlite3
 import fire
 import sys
@@ -20,10 +21,8 @@ sql = """
 """
 
 
-
 cur.execute(sql)
 conn.commit()
-
 
 
 def show_help_menu():
@@ -43,7 +42,6 @@ def show_help_menu():
   print(colored('-' * 100, 'green'))
 
 
-
 def add():
   print(colored('what would you like to add?', 'magenta'))
   body = input()
@@ -54,19 +52,31 @@ def add():
   cur.execute(sql, (body, datetime.now()))
   conn.commit()
 
-
-def do():
-#   print(colored('Adding Todo:', 'green'), body)
-  print('Id: ', end='')
-  id = input()
+def find(id):
+  # print(colored('Adding Todo:', 'green'), body)
   sql = """
-    UPDATE todos
-    SET status = 'completed'
-    Where id = (?)
+    SELECT id FROM todos
+    WHERE id=(?)
   """
   cur.execute(sql, (id,))
-  conn.commit()  
-  
+  result = cur.fetchall()
+  conn.commit()
+  return len(result) > 0
+
+
+def do():
+  print('Id: ', end='')
+  id = input()
+  if find(id):
+    sql = """
+      UPDATE todos
+      SET status = 'completed'
+      Where id = (?)
+    """
+    cur.execute(sql, (id,))
+    conn.commit()
+  else:
+    print(colored('id is not existed', 'green'))
 
 
 def undo():
@@ -79,8 +89,7 @@ def undo():
     Where id = (?)
   """
   cur.execute(sql, (id,))
-  conn.commit()   
-
+  conn.commit()
 
 
 def delete():
@@ -92,89 +101,77 @@ def delete():
     WHERE id = (?);
   """
   cur.execute(sql, (id,))
-  conn.commit()  
-
-# def change_title(body):
-#   sql = """
-#     UPDATE todos
-#     SET body = (?)
-#     Where id = (?)
-#   """
-#   cur.execute(sql, (id,), body,)
-#   conn.commit()  
+  conn.commit()
 
 
-def show_list(status = None):
-  if status == None:
-    sql = """
-      SELECT * FROM todos
-      ORDER BY status DESC
-    """
-    cur.execute(sql)
-    results = cur.fetchall()
 
 
+def show_list():
+  print('Filter by (done/undone/all): ', end='')
+  status = input()
+ 
 
   if status == "done":
     sql = """
       SELECT * FROM todos
-      WHERE status LIKE ?
+      WHERE status LIKE 'completed'
     """
-    cur.execute(sql, ("completed",))
-    results = cur.fetchall()
-    
-  if status == "undone":
+
+  elif status == "undone":
     sql = """
       SELECT * FROM todos
-      WHERE status LIKE ?
+      WHERE status LIKE 'incomplete'
     """
-    cur.execute(sql, ("incomplete",))
-    results = cur.fetchall()
-
-
+  else:
+    sql = """
+      SELECT * FROM todos
+      ORDER BY status DESC
+    """
+  cur.execute(sql)
+  results = cur.fetchall()
 
   print(colored('Todo List:', 'green'), len(results), 'todos')
-  data_table = []
-  for row in results:
-    data_table = (*data_table,row)
-  print(colored(tabulate(data_table, ['id', 'task', 'date', 'status'], tablefmt='fancy_grid'),'magenta'))
+  if len(results) > 0:
+    data_table = []
+    for row in results:
+      data_table = (*data_table, row)
+    print(colored(tabulate(data_table, ['id', 'task', 'date', 'status'], tablefmt='fancy_grid'), 'magenta'))
 
 
-if __name__  == '__main__':
+if __name__ == '__main__':
   try:
 
-    # arg1 = sys.argv[1]
-    # if arg1 == '--help':
-    #     show_help_menu()
-    # else:
-    #     fire.Fire({
-    #       'do': do,
-    #       'add': add,
-    #       'undo': undo,
-    #       'delete': delete,
-    #       'list': show_list,
-    #       # 'change': change_title,
-    #   })
+      # arg1 = sys.argv[1]
+      # if arg1 == '--help':
+      #     show_help_menu()
+      # else:
+      #     fire.Fire({
+      #       'do': do,
+      #       'add': add,
+      #       'undo': undo,
+      #       'delete': delete,
+      #       'list': show_list,
+      #       # 'change': change_title,
+      #   })
     while True:
       print('What do you want to do?')
       i_want_to = input()
-      if i_want_to == 'help' or i_want_to =='h':
+      if i_want_to == 'help' or i_want_to == 'h':
         show_help_menu()
-      elif i_want_to == 'list' or i_want_to =='l':
+      elif i_want_to == 'list' or i_want_to == 'l':
         show_list()
-      elif i_want_to == 'do' or i_want_to =='d':
+      elif i_want_to == 'do' or i_want_to == 'd':
         do()
-      elif i_want_to == 'undo' or i_want_to =='u':
-        undo()  
-      elif i_want_to == 'add' or i_want_to =='a':
-        add()  
-      elif i_want_to == 'delete' or i_want_to =='de':
-        delete()  
-          
-      
-      elif i_want_to == 'quit' or i_want_to =='q':
+      elif i_want_to == 'undo' or i_want_to == 'u':
+        undo()
+      elif i_want_to == 'add' or i_want_to == 'a':
+        add()
+      elif i_want_to == 'delete' or i_want_to == 'de':
+        delete()
+
+      elif i_want_to == 'quit' or i_want_to == 'q':
         break
 
   except IndexError:
-      show_help_menu()
-      sys.exit(1)
+    show_help_menu()
+    sys.exit(1)
